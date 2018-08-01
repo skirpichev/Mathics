@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from math import log10
-import sympy
+import diofant as sympy
 
 import mathics.core.expression as ma
 from mathics.core.parser.ast import Symbol, String, Number, Filename

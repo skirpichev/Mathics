@@ -7,7 +7,7 @@ from __future__ import absolute_import
 
 import sys
 import platform
-import sympy
+import diofant as sympy
 import mpmath
 import django
 import six

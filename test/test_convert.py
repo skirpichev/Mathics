@@ -4,7 +4,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import sympy
+import diofant as sympy
 import mathics
 import random
 import sys

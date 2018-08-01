@@ -12,7 +12,7 @@ import six
 from six.moves import range
 from six.moves import zip
 
-import sympy
+import diofant as sympy
 from mpmath import mp
 
 from mathics.builtin.base import Builtin

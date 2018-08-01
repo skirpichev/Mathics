@@ -20,7 +20,7 @@ import time
 import struct
 import mpmath
 import math
-import sympy
+import diofant as sympy
 
 import six
 from six.moves import range

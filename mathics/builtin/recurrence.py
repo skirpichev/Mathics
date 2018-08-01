@@ -8,7 +8,7 @@ Recurrence relation solvers
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import sympy
+import diofant as sympy
 from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression
 from mathics.core.convert import sympy_symbol_prefix, from_sympy

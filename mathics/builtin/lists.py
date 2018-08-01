@@ -28,7 +28,7 @@ from mathics.algorithm.clusters import optimize, agglomerate, kmeans, Precompute
 from mathics.algorithm.clusters import AutomaticSplitCriterion, AutomaticMergeCriterion
 from mathics.builtin.options import options_to_rules
 
-import sympy
+import diofant as sympy
 import heapq
 
 from collections import defaultdict

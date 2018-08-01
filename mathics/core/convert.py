@@ -13,7 +13,7 @@ import six
 from six.moves import range
 from six.moves import zip
 
-import sympy
+import diofant as sympy
 
 sympy_symbol_prefix = '_Mathics_User_'
 sympy_slot_prefix = '_Mathics_Slot_'

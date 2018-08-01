@@ -8,7 +8,7 @@ from mathics.builtin.base import Builtin
 from mathics.core.expression import Expression, Integer, Symbol, Atom, Number
 from mathics.core.convert import from_sympy, sympy_symbol_prefix
 
-import sympy
+import diofant as sympy
 import mpmath
 from six.moves import range
 

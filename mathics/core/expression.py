@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import sympy
+import diofant as sympy
 import mpmath
 import math
 import re

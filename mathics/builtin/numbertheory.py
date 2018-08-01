@@ -11,7 +11,7 @@ import six
 from six.moves import map
 from six.moves import range
 
-import sympy
+import diofant as sympy
 from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test
