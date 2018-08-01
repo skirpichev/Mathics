@@ -30,7 +30,7 @@ class ConsoleTest(unittest.TestCase):
         # Anaconda / conda's
         python_line = self.readline()
         self.assertTrue(any([(x in python_line) for x in ["CPython", "PyPy"]]))
-        self.assertRegexpMatches(self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
+        self.assertRegexpMatches(self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$|dev[\\d]+|[ab][\\d]+))+')
 
         self.assertRegexpMatches(self.readline(), '\r\n')
 
