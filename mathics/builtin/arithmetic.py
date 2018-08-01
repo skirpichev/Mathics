@@ -8,7 +8,7 @@ Basic arithmetic functions, including complex number arithmetic.
 """
 
 
-import sympy
+import diofant as sympy
 import mpmath
 
 from mathics.builtin.base import (

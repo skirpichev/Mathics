@@ -6,7 +6,7 @@ Input and Output
 """
 
 import re
-import sympy
+import diofant as sympy
 import mpmath
 
 from mathics.builtin.base import (

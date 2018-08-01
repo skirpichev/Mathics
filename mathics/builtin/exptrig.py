@@ -10,7 +10,7 @@ rules are not implemented yet.
 """
 
 
-import sympy
+import diofant as sympy
 import mpmath
 import math
 

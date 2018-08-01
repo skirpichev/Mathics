@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import sympy
+import diofant as sympy
 import itertools
 
 from mathics.builtin.base import Builtin, BinaryOperator, Test, SympyFunction

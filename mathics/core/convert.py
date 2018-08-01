@@ -6,7 +6,7 @@ Converts expressions from SymPy to Mathics expressions.
 Conversion to SymPy is handled directly in BaseExpression descendants.
 """
 
-import sympy
+import diofant as sympy
 
 sympy_symbol_prefix = '_Mathics_User_'
 sympy_slot_prefix = '_Mathics_Slot_'

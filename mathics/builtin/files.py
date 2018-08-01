@@ -16,7 +16,7 @@ import time
 import struct
 import mpmath
 import math
-import sympy
+import diofant as sympy
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,

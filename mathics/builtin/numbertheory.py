@@ -5,7 +5,7 @@
 Number theoretic functions
 """
 
-import sympy
+import diofant as sympy
 from itertools import combinations
 
 from mathics.builtin.base import Builtin, Test

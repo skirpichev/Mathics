@@ -10,7 +10,7 @@ However, things like 'N[Pi, 100]' should work as expected.
 """
 
 
-import sympy
+import diofant as sympy
 import mpmath
 from mpmath import mpf
 import math

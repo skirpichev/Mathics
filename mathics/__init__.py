@@ -3,7 +3,7 @@
 
 import sys
 import platform
-import sympy
+import diofant as sympy
 import mpmath
 import django
 

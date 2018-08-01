@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-import sympy
+import diofant as sympy
 from functools import total_ordering
 import importlib
 from itertools import chain

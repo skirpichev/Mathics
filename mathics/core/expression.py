@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sympy
+import diofant as sympy
 import mpmath
 import math
 import re

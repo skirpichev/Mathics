@@ -9,7 +9,7 @@ from mathics.core.rules import Pattern
 from mathics.core.numbers import dps
 from mathics.builtin.scoping import dynamic_scoping
 
-import sympy
+import diofant as sympy
 import numpy
 
 class Minimize(Builtin):

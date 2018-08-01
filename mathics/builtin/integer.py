@@ -6,7 +6,7 @@ Integer functions
 """
 
 
-import sympy
+import diofant as sympy
 import string
 import math
 
