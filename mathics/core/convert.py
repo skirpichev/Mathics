@@ -107,8 +107,6 @@ def from_sympy(expr):
         Symbol, Integer, Rational, Real, Complex, String, Expression, MachineReal)
     from mathics.core.numbers import machine_precision
 
-    from sympy.core import numbers, function, symbol
-
     if isinstance(expr, (tuple, list)):
         return Expression('List', *[from_sympy(item) for item in expr])
     if isinstance(expr, int):
@@ -133,7 +131,7 @@ def from_sympy(expr):
         name = None
         if expr.is_Symbol:
             name = six.text_type(expr)
-            if isinstance(expr, symbol.Dummy):
+            if isinstance(expr, sympy.Dummy):
                 name = name + ('__Dummy_%d' % expr.dummy_index)
                 return Symbol(name, sympy_dummy=expr)
             if is_Cn_expr(name):
@@ -150,15 +148,15 @@ def from_sympy(expr):
             if builtin is not None:
                 name = builtin.get_name()
             return Symbol(name)
-        elif isinstance(expr, (numbers.Infinity, numbers.ComplexInfinity)):
+        elif isinstance(expr, (sympy.numbers.Infinity, sympy.numbers.ComplexInfinity)):
             return Symbol(expr.__class__.__name__)
-        elif isinstance(expr, numbers.NegativeInfinity):
+        elif isinstance(expr, sympy.numbers.NegativeInfinity):
             return Expression('Times', Integer(-1), Symbol('Infinity'))
-        elif isinstance(expr, numbers.ImaginaryUnit):
+        elif isinstance(expr, sympy.numbers.ImaginaryUnit):
             return Complex(Integer(0), Integer(1))
-        elif isinstance(expr, numbers.Integer):
+        elif isinstance(expr, sympy.Integer):
             return Integer(expr.p)
-        elif isinstance(expr, numbers.Rational):
+        elif isinstance(expr, sympy.Rational):
             if expr.q == 0:
                 if expr.p > 0:
                     return Symbol('Infinity')
@@ -168,13 +166,13 @@ def from_sympy(expr):
                     assert expr.p == 0
                     return Symbol('Indeterminate')
             return Rational(expr.p, expr.q)
-        elif isinstance(expr, numbers.Float):
+        elif isinstance(expr, sympy.Float):
             if expr._prec == machine_precision:
                 return MachineReal(float(expr))
             return Real(expr)
-        elif isinstance(expr, numbers.NaN):
+        elif isinstance(expr, sympy.numbers.NaN):
             return Symbol('Indeterminate')
-        elif isinstance(expr, function.FunctionClass):
+        elif isinstance(expr, sympy.function.FunctionClass):
             return Symbol(six.text_type(expr))
     elif expr.is_number and all([x.is_Number for x in expr.as_real_imag()]):
         # Hack to convert 3 * I to Complex[0, 3]
