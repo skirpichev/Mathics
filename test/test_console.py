@@ -29,7 +29,7 @@ class ConsoleTest(unittest.TestCase):
         self.assertRegexpMatches(
             self.readline(), 'on (CPython|PyPy) \\d+.\\d+.\\d+ \\(.+\\) ?\r\n')
         self.assertRegexpMatches(
-            self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$))+')
+            self.readline(), 'using ([a-zA-Z]+ [\\.\\d]+(, |\r\n$|dev[\\d]+|[ab][\\d]+))+')
 
         self.assertRegexpMatches(self.readline(), '\r\n')
 
