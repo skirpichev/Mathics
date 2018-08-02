@@ -205,6 +205,8 @@ def from_sympy(expr):
         return Expression('Piecewise', Expression('List', *[Expression(
             'List', from_sympy(case), from_sympy(cond)) for case, cond in args]), *default)
 
+    elif isinstance(expr, sympy.RootOf):
+        return Expression('Root', from_sympy(expr.poly), from_sympy(expr.index))
     elif isinstance(expr, sympy.RootSum):
         return Expression('RootSum', from_sympy(expr.poly),
                           from_sympy(expr.fun))
