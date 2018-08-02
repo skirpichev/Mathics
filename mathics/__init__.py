@@ -16,6 +16,7 @@ from mathics.core.convert import from_sympy
 
 version_info = {
     'mathics': __version__,
+    'backend': sympy.__name__,
     'sympy': sympy.__version__,
     'mpmath': mpmath.__version__,
     'python': platform.python_implementation() + " " + sys.version.split('\n')[0],
@@ -25,7 +26,7 @@ version_info = {
 
 version_string = '''Mathics {mathics}
 on {python}
-using SymPy {sympy}, mpmath {mpmath}'''.format(**version_info)
+using {backend} {sympy}, mpmath {mpmath}'''.format(**version_info)
 
 
 server_version_string = version_string + ', django {django}'.format(**version_info)
