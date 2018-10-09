@@ -358,7 +358,7 @@ class FactorTermsList(Builtin):
     >> f = 3 (-1 + 2 x) (-1 + y) (1 - a)
      = 3 (-1 + 2 x) (-1 + y) (1 - a)
     >> FactorTermsList[f]
-     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+     = {-3, -1 + a - a y + 2 x - 2 a x + y - 2 x y + 2 a x y}
     >> FactorTermsList[f, x]
      = {-3, 1 - a - y + a y, -1 + 2 x}
     #> FactorTermsList[f, y]
@@ -372,12 +372,12 @@ class FactorTermsList(Builtin):
     #> FactorTermsList[f, {x, y, z, t}]
      = {-3, -1 + a, 1, 1, -1 + y, -1 + 2 x}
     #> FactorTermsList[f, 3/5]
-     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+     = {-3, -1 + a - a y + 2 x - 2 a x + y - 2 x y + 2 a x y}
     #> FactorTermsList[f, {x, 3, y}]
      = {-3, -1 + a, -1 + y, -1 + 2 x}
     
     #> FactorTermsList[f/c]
-     = {-3, -1 / c + a / c - 2 a x / c - a y / c + 2 x / c + y / c - 2 x y / c + 2 a x y / c}
+     = {-3, -1 / c + a / c - a y / c + 2 x / c - 2 a x / c + y / c - 2 x y / c + 2 a x y / c}
     #> FactorTermsList[f/c, x] == FactorTermsList[f/c, {x, y}]
      = True
     
