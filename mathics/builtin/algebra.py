@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -46,8 +46,45 @@ def cancel(expr):
 
 def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
+    def _expand(expr):
+        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
+
     if kwargs['modulus'] is not None and kwargs['modulus'] <= 0:
         return Integer(0)
+
+    # A special case for trigonometric functions
+    if 'trig' in kwargs and kwargs['trig']:
+        if expr.has_form('Sin', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times', 
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times', 
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, b)
+
+        elif expr.has_form('Cos', 1):
+            theta = expr.leaves[0]
+
+            if theta.has_form('Plus', 2, None):
+                x, y = theta.leaves[0], Expression('Plus', *theta.leaves[1:])
+
+                a = Expression('Times',
+                               _expand(Expression('Cos', x)),
+                               _expand(Expression('Cos', y)))
+
+                b = Expression('Times',
+                               _expand(Expression('Sin', x)),
+                               _expand(Expression('Sin', y)))
+
+                return Expression('Plus', a, -b)
 
     sub_exprs = []
 
@@ -92,12 +129,9 @@ def expand(expr, numer=True, denom=False, deep=False, **kwargs):
 
     sympy_expr = convert_sympy(expr)
 
-    def _expand(expr):
-        return expand(expr, numer=numer, denom=denom, deep=deep, **kwargs)
-
     if deep:
         # thread over everything
-        for i, sub_expr,in enumerate(sub_exprs):
+        for i, sub_expr, in enumerate(sub_exprs):
             if not sub_expr.is_atom():
                 head = _expand(sub_expr.head)    # also expand head
                 leaves = sub_expr.get_leaves()
@@ -575,7 +609,8 @@ class Expand(_Expand):
     """
     <dl>
     <dt>'Expand[$expr$]'
-        <dd>expands out positive integer powers and products of sums in $expr$.
+        <dd>expands out positive integer powers and products of sums in $expr$,
+        as well as trigonometric identities.
     </dl>
 
     >> Expand[(x + y) ^ 3]
@@ -594,6 +629,10 @@ class Expand(_Expand):
     'Expand' expands items in lists and rules:
     >> Expand[{4 (x + y), 2 (x + y) -> 4 (x + y)}]
      = {4 x + 4 y, 2 x + 2 y -> 4 x + 4 y}
+
+    'Expand' expands trigonometric identities
+    >> Expand[Sin[x + y], Trig -> True]
+     = Cos[x] Sin[y] + Cos[y] Sin[x]
 
     'Expand' does not change any other expression.
     >> Expand[Sin[x (1 + y)]]
@@ -623,18 +662,13 @@ class Expand(_Expand):
      = 24 x / (5 + 3 x + x ^ 2) ^ 3 + 8 x ^ 2 / (5 + 3 x + x ^ 2) ^ 3 + 18 / (5 + 3 x + x ^ 2) ^ 3
     """
 
-    # TODO unwrap trig expressions in expand() so the following works
-    """
-    >> Expand[Sin[x + y], Trig -> True]
-     = Cos[y] Sin[x] + Cos[x] Sin[y]
-    """
-
     def apply(self, expr, evaluation, options):
         'Expand[expr_, OptionsPattern[Expand]]'
 
         kwargs = self.convert_options(options, evaluation)
         if kwargs is None:
             return
+
         return expand(expr, True, False, **kwargs)
 
 
@@ -1202,13 +1236,14 @@ class CoefficientList(Builtin):
                     if not dims:
                         return from_sympy(poly.coeff_monomial(exponents))
                     
-                    result = Expression('List')
+                    leaves = []
                     first_dim = dims[0]
                     for i in range(first_dim+1):
                         exponents.append(i)
                         subs = _nth(poly, dims[1:], exponents)
-                        result.leaves.append(subs)
+                        leaves.append(subs)
                         exponents.pop()
+                    result = Expression('List', *leaves)
                     return result
                 
                 return _nth(sympy_poly, dimensions, [])

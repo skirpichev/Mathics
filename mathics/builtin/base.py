@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import re
@@ -7,6 +7,9 @@ from functools import total_ordering
 import importlib
 from itertools import chain
 
+import typing
+from typing import Any, cast
+
 from mathics.core.definitions import Definition
 from mathics.core.rules import Rule, BuiltinRule, Pattern
 from mathics.core.expression import (BaseExpression, Expression, Symbol,
@@ -14,15 +17,43 @@ from mathics.core.expression import (BaseExpression, Expression, Symbol,
                                      strip_context)
 
 
+def get_option(options, name, evaluation, pop=False, evaluate=True):
+    # we do not care whether an option X is given as System`X,
+    # Global`X, or with any prefix from $ContextPath for that
+    # matter. Also, the quoted string form "X" is ok. all these
+    # variants name the same option. this matches Wolfram Language
+    # behaviour.
+
+    contexts = (s + '%s' for s in
+                evaluation.definitions.get_context_path())
+
+    for variant in chain(contexts, ('"%s"',)):
+        resolved_name = variant % name
+
+        if pop:
+            value = options.pop(resolved_name, None)
+        else:
+            value = options.get(resolved_name)
+
+        if value is not None:
+            return value.evaluate(evaluation) if evaluate else value
+
+    return None
+
+
+def has_option(options, name, evaluation):
+    return get_option(options, name, evaluation, evaluate=False) is not None
+
+
 class Builtin(object):
-    name = None
+    name: typing.Optional[str] = None
     context = 'System`'
     abstract = False
-    attributes = ()
-    rules = {}
-    formats = {}
-    messages = {}
-    options = {}
+    attributes: typing.Tuple[Any, ...] = ()
+    rules: typing.Dict[str, Any] = {}
+    formats: typing.Dict[str, Any] = {}
+    messages: typing.Dict[str, Any] = {}
+    options: typing.Dict[str, Any] = {}
     defaults = {}
 
     def __new__(cls, *args, **kwargs):
@@ -39,13 +70,58 @@ class Builtin(object):
     def __init__(self, *args, **kwargs):
         super(Builtin, self).__init__()
 
-    def contribute(self, definitions):
+    def contribute(self, definitions, pymodule=False):
         from mathics.core.parser import parse_builtin_rule
 
         name = self.get_name()
+
+        options = {}
+        option_syntax = 'Warn'
+        for option, value in self.options.items():
+            if option == '$OptionSyntax':
+                option_syntax = value
+                continue
+            option = ensure_context(option)
+            options[option] = parse_builtin_rule(value)
+            if option.startswith('System`'):
+                # Create a definition for the option's symbol.
+                # Otherwise it'll be created in Global` when it's
+                # used, so it won't work.
+                if option not in definitions.builtin:
+                    definitions.builtin[option] = Definition(
+                        name=name, attributes=set())
+
+        # Check if the given options are actually supported by the Builtin.
+        # If not, we might issue an optx error and abort. Using '$OptionSyntax'
+        # in your Builtin's 'options', you can specify the exact behaviour
+        # using one of the following values:
+
+        # - 'Strict': warn and fail with unsupported options
+        # - 'Warn': warn about unsupported options, but continue
+        # - 'Ignore': allow unsupported options, do not warn
+
+        if option_syntax in ('Strict', 'Warn'):
+            def check_options(options_to_check, evaluation):
+                name = self.get_name()
+                for key, value in options_to_check.items():
+                    short_key = strip_context(key)
+                    if not has_option(options, short_key, evaluation):
+                        evaluation.message(
+                            name,
+                            'optx',
+                            Expression('Rule', short_key, value),
+                            strip_context(name))
+                        if option_syntax == 'Strict':
+                            return False
+                return True
+        elif option_syntax == 'Ignore':
+            check_options = None
+        else:
+            raise ValueError('illegal option mode %s; check $OptionSyntax.' % option_syntax)
+
         rules = []
         for pattern, function in self.get_functions():
-            rules.append(BuiltinRule(pattern, function, system=True))
+            rules.append(BuiltinRule(name, pattern, function, check_options, system=True))
         for pattern, replace in self.rules.items():
             if not isinstance(pattern, BaseExpression):
                 pattern = pattern % {'name': name}
@@ -90,7 +166,7 @@ class Builtin(object):
                 if form not in formatvalues:
                     formatvalues[form] = []
                 formatvalues[form].append(BuiltinRule(
-                    pattern, function, system=True))
+                    name, pattern, function, None, system=True))
         for pattern, replace in self.formats.items():
             forms, pattern = extract_forms(name, pattern)
             for form in forms:
@@ -108,6 +184,9 @@ class Builtin(object):
         messages = [Rule(Expression('MessageName', Symbol(name), String(msg)),
                          String(value), system=True)
                     for msg, value in self.messages.items()]
+
+        messages.append(Rule(Expression('MessageName', Symbol(name), String('optx')),
+            String('`1` is not a supported option for `2`[].'), system=True))
 
         if name == 'System`MakeBoxes':
             attributes = []
@@ -139,14 +218,17 @@ class Builtin(object):
             name=name, rules=rules, formatvalues=formatvalues,
             messages=messages, attributes=attributes, options=options,
             defaultvalues=defaults)
-        definitions.builtin[name] = definition
+        if pymodule:
+            definitions.pymathics[name] = definition
+        else:
+            definitions.builtin[name] = definition
 
         makeboxes_def = definitions.builtin['System`MakeBoxes']
         for rule in box_rules:
             makeboxes_def.add_rule(rule)
 
     @classmethod
-    def get_name(cls, short=False):
+    def get_name(cls, short=False) -> str:
         if cls.name is None:
             shortname = cls.__name__
         else:
@@ -155,10 +237,10 @@ class Builtin(object):
             return shortname
         return cls.context + shortname
 
-    def get_operator(self):
+    def get_operator(self) -> typing.Optional[str]:
         return None
 
-    def get_operator_display(self):
+    def get_operator_display(self) -> typing.Optional[str]:
         return None
 
     def get_functions(self, prefix='apply'):
@@ -167,6 +249,7 @@ class Builtin(object):
         unavailable_function = self._get_unavailable_function()
         for name in dir(self):
             if name.startswith(prefix):
+
                 function = getattr(self, name)
                 pattern = function.__doc__
                 if pattern is None:  # Fixes PyPy bug
@@ -189,27 +272,7 @@ class Builtin(object):
 
     @staticmethod
     def get_option(options, name, evaluation, pop=False):
-        # we do not care whether an option X is given as System`X,
-        # Global`X, or with any prefix from $ContextPath for that
-        # matter. Also, the quoted string form "X" is ok. all these
-        # variants name the same option. this matches Wolfram Language
-        # behaviour.
-
-        contexts = (s + '%s' for s in
-                    evaluation.definitions.get_context_path())
-
-        for variant in chain(contexts, ('"%s"',)):
-            resolved_name = variant % name
-
-            if pop:
-                value = options.pop(resolved_name, None)
-            else:
-                value = options.get(resolved_name)
-
-            if value is not None:
-                return value.evaluate(evaluation)
-
-        return None
+        return get_option(options, name, evaluation, pop)
 
     def _get_unavailable_function(self):
         requires = getattr(self, 'requires', [])
@@ -236,6 +299,7 @@ class Builtin(object):
                 if s.get_name().startswith(prefix):
                     return s.get_name()[len(prefix):], s
         return None, s
+
 
 class InstancableBuiltin(Builtin):
     def __new__(cls, *args, **kwargs):
@@ -267,23 +331,23 @@ class AtomBuiltin(Builtin):
     # which are by default not in the definitions' contribution pipeline.
     # see Image[] for an example of this.
 
-    def get_name(self):
+    def get_name(self) -> str:
         name = super(AtomBuiltin, self).get_name()
         return re.sub(r"Atom$", "", name)
 
 
 class Operator(Builtin):
-    operator = None
-    precedence = None
+    operator: typing.Optional[str] = None
+    precedence: typing.Optional[int] = None
     precedence_parse = None
     needs_verbatim = False
 
     default_formats = True
 
-    def get_operator(self):
+    def get_operator(self) -> typing.Optional[str]:
         return self.operator
 
-    def get_operator_display(self):
+    def get_operator_display(self) -> typing.Optional[str]:
         if hasattr(self, 'operator_display'):
             return self.operator_display
         else:
@@ -362,7 +426,7 @@ class BinaryOperator(Operator):
 
 
 class Test(Builtin):
-    def apply(self, expr, evaluation):
+    def apply(self, expr, evaluation) -> Symbol:
         '%(name)s[expr_]'
 
         if self.test(expr):
@@ -372,17 +436,17 @@ class Test(Builtin):
 
 
 class SympyObject(Builtin):
-    sympy_name = None
+    sympy_name: typing.Optional[str] = None
 
     def __init__(self, *args, **kwargs):
         super(SympyObject, self).__init__(*args, **kwargs)
         if self.sympy_name is None:
             self.sympy_name = strip_context(self.get_name()).lower()
 
-    def is_constant(self):
+    def is_constant(self) -> bool:
         return False
 
-    def get_sympy_names(self):
+    def get_sympy_names(self) -> typing.List[str]:
         if self.sympy_name:
             return [self.sympy_name]
         return []
@@ -419,7 +483,7 @@ class SympyFunction(SympyObject):
 class SympyConstant(SympyObject, Predefined):
     attributes = ('Constant', 'ReadProtected')
 
-    def is_constant(self):
+    def is_constant(self) -> bool:
         # free Symbol will be converted to corresponding SymPy symbol
         return True
 
@@ -440,7 +504,8 @@ class PartError(Exception):
 
 
 class PartDepthError(PartError):
-    pass
+    def __init__(self, index=0):
+        self.index = index
 
 
 class PartRangeError(PartError):
@@ -458,13 +523,13 @@ class BoxConstruct(Builtin):
         default.update(options)
         return default
 
-    def boxes_to_text(self, leaves, **options):
+    def boxes_to_text(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_xml(self, leaves, **options):
+    def boxes_to_xml(self, leaves, **options) -> str:
         raise BoxConstructError
 
-    def boxes_to_tex(self, leaves, **options):
+    def boxes_to_tex(self, leaves, **options) -> str:
         raise BoxConstructError
 
 
@@ -481,7 +546,7 @@ class PatternArgumentError(PatternError):
 class PatternObject(InstancableBuiltin, Pattern):
     needs_verbatim = True
 
-    arg_counts = []
+    arg_counts: typing.List[int] = []
 
     def init(self, expr):
         super(PatternObject, self).init(expr)
@@ -498,10 +563,10 @@ class PatternObject(InstancableBuiltin, Pattern):
     def error_args(self, count, *expected):
         raise PatternArgumentError(self.get_name(), count, *expected)
 
-    def get_lookup_name(self):
+    def get_lookup_name(self) -> str:
         return self.get_name()
 
-    def get_head_name(self):
+    def get_head_name(self) -> str:
         return self.get_name()
 
     def get_sort_key(self, pattern_sort=False):
@@ -541,6 +606,9 @@ class CountableInteger:
     # up in UpTo's parameter error messages as supported option; it would make
     # perfect sense. currently, we stick with MMA's current behaviour and set
     # _support_infinity to False.
+    _finite: bool
+    _upper_limit: bool
+    _integer: typing.Union[str, int]
     _support_infinity = False
 
     def __init__(self, value='Infinity', upper_limit=True):
@@ -553,32 +621,32 @@ class CountableInteger:
             self._integer = None
         self._upper_limit = upper_limit
 
-    def is_upper_limit(self):
+    def is_upper_limit(self) -> bool:
         return self._upper_limit
 
-    def get_int_value(self):
+    def get_int_value(self) -> int:
         assert self._finite
-        return self._integer
+        return cast(int, self._integer)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, CountableInteger):
             if self._finite:
-                return other._finite and self._integer == other._integer
+                return other._finite and cast(int, self._integer) == other._integer
             else:
                 return not other._finite
         elif isinstance(other, int):
-            return self._finite and self._integer == other
+            return self._finite and cast(int, self._integer) == other
         else:
             return False
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if isinstance(other, CountableInteger):
             if self._finite:
-                return other._finite and self._integer < other._value
+                return other._finite and cast(int, self._integer) < cast(int, other._integer)
             else:
                 return False
         elif isinstance(other, int):
-            return self._finite and self._integer < other
+            return self._finite and cast(int, self._integer) < other
         else:
             return False
 

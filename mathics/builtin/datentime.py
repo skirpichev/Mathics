@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -98,9 +98,9 @@ class Timing(Builtin):
     def apply(self, expr, evaluation):
         'Timing[expr_]'
 
-        start = time.clock()
+        start = time.process_time()
         result = expr.evaluate(evaluation)
-        stop = time.clock()
+        stop = time.process_time()
         return Expression('List', Real(stop - start), result)
 
 
@@ -538,6 +538,24 @@ class AbsoluteTime(_DateFormat):
         return from_python(total_seconds(tdelta))
 
 
+class SystemTimeZone(Predefined):
+    """
+    <dl>
+    <dt>'$SystemTimeZone'
+      <dd> gives the current time zone for the computer system on which Mathics is being run.
+    </dl>
+
+    >> $SystemTimeZone
+     = ...
+    """
+
+    name = '$SystemTimeZone'
+    value = Real(-time.timezone / 3600.)
+
+    def evaluate(self, evaluation):
+        return self.value
+
+
 class TimeZone(Predefined):
     """
     <dl>
@@ -549,10 +567,21 @@ class TimeZone(Predefined):
      = ...
     """
 
-    name = '$TimeZone'
+    name = "$TimeZone"
+    value = SystemTimeZone.value.copy()
 
-    def evaluate(self, evaluation):
-        return Real(-time.timezone / 3600.)
+    rules = {
+        "$TimeZone": str(value),
+    }
+
+    def apply(self, lhs, rhs, evaluation):
+        'lhs_ = rhs_'
+
+        self.assign(lhs, rhs, evaluation)
+        return rhs
+
+    def evaluate(self, evaluation) -> Real:
+        return self.value
 
 
 class TimeUsed(Builtin):
@@ -568,7 +597,9 @@ class TimeUsed(Builtin):
 
     def apply(self, evaluation):
         'TimeUsed[]'
-        return Real(time.clock())  # TODO: Check this for windows
+        # time.process_time() is better than
+        # time.clock(). See https://bugs.python.org/issue31803
+        return Real(time.process_time())
 
 
 class SessionTime(Builtin):

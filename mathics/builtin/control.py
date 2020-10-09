@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -618,7 +618,22 @@ class Abort(Builtin):
 
         raise AbortInterrupt
 
+class Interrupt(Builtin):
+    """
+    <dl>
+    <dt>'Interrupt[]'
+        <dd>Interrupt an evaluation and returns '$Aborted'.
+    </dl>
+    >> Print["a"]; Interrupt[]; Print["b"]
+     | a
+     = $Aborted
+    """
 
+    def apply(self, evaluation):
+        'Interrupt[]'
+
+        raise AbortInterrupt
+    
 class Return(Builtin):
     '''
     <dl>

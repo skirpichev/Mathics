@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -17,6 +17,11 @@ import struct
 import mpmath
 import math
 import diofant as sympy
+import requests
+import tempfile
+
+ 
+from itertools import chain
 
 from mathics.core.expression import (Expression, Real, Complex, String, Symbol,
                                      from_python, Integer, BoxError,
@@ -50,21 +55,35 @@ def path_search(filename):
             if result is not None:
                 filename = None
                 break
-
     if filename is not None:
         result = None
-        for p in PATH_VAR + ['']:
-            path = os.path.join(p, filename)
-            if os.path.exists(path):
-                result = path
-                break
+        # If filename is an internet address, download the file
+        # and store it in a temporal location
+        lenfn = len(filename)
+        if (lenfn>7 and filename[:7]=="http://") or \
+           (lenfn>8 and filename[:8]=="https://") or \
+           (lenfn>6 and filename[:6]=="ftp://"):
+            try:
+                r = requests.get(filename, allow_redirects=True)
+                fp = tempfile.NamedTemporaryFile(delete=False)
+                fp.write(r.content)
+                result = fp.name
+                fp.close()
+            except Exception:
+                result = None
+        else:
+            for p in PATH_VAR + ['']:
+                path = os.path.join(p, filename)
+                if os.path.exists(path):
+                    result = path
+                    break
 
-    # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
-    if result is not None and os.path.isdir(result):
-        for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
-            tmp = os.path.join(result, ext)
-            if os.path.isfile(tmp):
-                return tmp
+            # If FindFile resolves to a dir, search within for Kernel/init.m and init.m
+            if result is not None and os.path.isdir(result):
+                for ext in [os.path.join('Kernel', 'init.m'), 'init.m']:
+                    tmp = os.path.join(result, ext)
+                    if os.path.isfile(tmp):
+                        return tmp
     return result
 
 
@@ -172,7 +191,7 @@ class InitialDirectory(Predefined):
     """
     <dl>
     <dt>'$InitialDirectory'
-      <dd>returns the directory from which \Mathics was started.
+      <dd>returns the directory from which \\Mathics was started.
     </dl>
 
     >> $InitialDirectory
@@ -190,7 +209,7 @@ class InstallationDirectory(Predefined):
     """
     <dl>
     <dt>'$InstallationDirectory'
-      <dd>returns the directory in which \Mathics was installed.
+      <dd>returns the directory in which \\Mathics was installed.
     </dl>
 
     >> $InstallationDirectory
@@ -1484,17 +1503,17 @@ class BinaryWrite(Builtin):
             elif t.startswith('Character'):
                 if isinstance(x, Integer):
                     x = [String(char) for char in str(x.get_int_value())]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 if isinstance(x, String) and len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 x = x.get_string_value()
             elif t == 'Byte' and isinstance(x, String):
                 if len(x.get_string_value()) > 1:
                     x = [String(char) for char in x.get_string_value()]
-                    pyb = pyb[:i] + x + pyb[i + 1:]
+                    pyb = list(chain(pyb[:i], x, pyb[i + 1:]))
                     x = pyb[i]
                 x = ord(x.get_string_value())
             else:
@@ -1560,7 +1579,7 @@ class BinaryRead(Builtin):
     #> ToCharacterCode[WbR[{50, 154, 182, 236}, {"Character16", "Character16"}]]
      = {{39474}, {60598}}
     ## #> WbR[ {91, 146, 206, 54}, {"Character16", "Character16"}]
-    ##  = {\:925b, \:36ce}
+    ##  = {\\:925b, \\:36ce}
 
     ## Complex64
     #> WbR[{80, 201, 77, 239, 201, 177, 76, 79}, "Complex64"] // InputForm
@@ -1992,6 +2011,10 @@ class OpenRead(_OpenAction):
      = InputStream[...]
     #> Close[%];
 
+    S> OpenRead["https://raw.githubusercontent.com/mathics/Mathics/master/README.rst"]
+     = InputStream[...]
+    S> Close[%];
+
     #> OpenRead[]
      : OpenRead called with 0 arguments; 1 argument is expected.
      = OpenRead[]
@@ -2093,7 +2116,7 @@ class Get(PrefixOperator):
     #> Hold[<< ~/some_example/dir/] // FullForm
      = Hold[Get["~/some_example/dir/"]]
     #> Hold[<<`/.\-_:$*~?] // FullForm
-     = Hold[Get["`/.\\-_:$*~?"]]
+     = Hold[Get["`/.\\\\-_:$*~?"]]
     """
 
     operator = '<<'
@@ -2467,7 +2490,7 @@ class FileNameJoin(Builtin):
 
     ## TODO
     ## #> FileNameJoin[{"dir1", "dir2", "dir3"}, OperatingSystem -> "Windows"]
-    ##  = dir1\dir2\dir3
+    ##  = dir1\\dir2\\dir3
     """
 
     attributes = ('Protected')
@@ -3502,7 +3525,7 @@ class StringToStream(Builtin):
     def apply(self, string, evaluation):
         'StringToStream[string_]'
         pystring = string.to_python()[1:-1]
-        stream = io.StringIO(str(pystring))        
+        stream = io.StringIO(str(pystring))
 
         name = Symbol('String')
         n = next(NSTREAMS)
@@ -3595,7 +3618,7 @@ class Compress(Builtin):
 
         # TODO Implement other Methods
         result = zlib.compress(string)
-        result = base64.encodestring(result).decode('utf8')
+        result = base64.encodebytes(result).decode('utf8')
 
         return String(result)
 
@@ -3623,7 +3646,7 @@ class Uncompress(Builtin):
     def apply(self, string, evaluation):
         'Uncompress[string_String]'
         string = string.get_string_value().encode('utf-8')
-        string = base64.decodestring(string)
+        string = base64.decodebytes(string)
         tmp = zlib.decompress(string)
         tmp = tmp.decode('utf-8')
         return evaluation.parse(tmp)
@@ -4237,7 +4260,7 @@ class SetDirectory(Builtin):
       <dd>sets the current working directory to $dir$.
     </dl>
 
-    >> SetDirectory[]
+    S> SetDirectory[]
     = ...
 
     #> SetDirectory["MathicsNonExample"]

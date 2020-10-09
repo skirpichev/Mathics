@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 
@@ -30,6 +30,9 @@ filename_pattern = r'''
 '''
 
 tokens = [
+    ('Definition', r'\? '),
+    ('Information', r'\?\? '),
+
     ('Number', number_pattern),
     ('String', r'"'),
     ('Pattern', pattern_pattern),
@@ -46,7 +49,9 @@ tokens = [
     ('RawRightBrace', r' \} '),
     ('RawLeftParenthesis', r' \( '),
     ('RawRightParenthesis', r' \) '),
-
+    ('RawLeftAssociation', r' \<\| '),
+    ('RawRightAssociation', r' \|\> '),     
+    
     ('RawComma', r' \, '),
 
     ('Span', r' \;\; '),
@@ -66,6 +71,7 @@ tokens = [
     ('SqrtBox', r' \\\@ '),
     ('FormBox', r' \\\` '),
 
+    ('Information', r'\?\?'),
     ('PatternTest', r' \? '),
     ('Increment', r' \+\+ '),
     ('Decrement', r' \-\- '),
@@ -114,6 +120,7 @@ tokens = [
 
     ('Rule', r' (\-\>)|\uF522 '),
     ('RuleDelayed', r' (\:\>)|\uF51F '),
+    ('UndirectedEdge', r' (\<\-\>)|\u29DF '),
     ('ReplaceRepeated', r' \/\/\. '),
     ('ReplaceAll', r' \/\. '),
 
@@ -135,7 +142,7 @@ tokens = [
     ('Minus', r' \-|\u2212 '),
     ('Plus', r' \+ '),
     ('RawBackslash', r' \\ '),
-
+    
     ('Factorial2', r' \!\! '),
     ('Factorial', r' \! '),
     ('Function', r' \& | \uF4A1 '),
@@ -225,10 +232,10 @@ literal_tokens = {
           'Postfix', 'TagSet', 'Condition', 'Divide'],
     ':': ['MessageName', 'RuleDelayed', 'SetDelayed', 'RawColon'],
     ';': ['Span', 'Semicolon'],
-    '<': ['Get', 'StringJoin', 'LessEqual', 'Less'],
+    '<': ['RawLeftAssociation', 'UndirectedEdge', 'Get', 'StringJoin', 'LessEqual', 'Less'],
     '=': ['SameQ', 'UnsameQ', 'Equal', 'Unset', 'Set'],
     '>': ['PutAppend', 'Put', 'GreaterEqual', 'Greater'],
-    '?': ['PatternTest'],
+    '?': ['Information', 'PatternTest'],
     '@': ['ApplyList', 'Apply', 'Composition', 'Prefix'],
     '[': ['RawLeftBracket'],
     '\\': ['LeftRowBox', 'RightRowBox', 'InterpretedBox', 'SuperscriptBox',
@@ -238,7 +245,7 @@ literal_tokens = {
     '^': ['UpSetDelayed', 'UpSet', 'Power'],
     '_': ['Pattern'],
     '`': ['Pattern', 'Symbol'],
-    '|': ['Or', 'Alternatives'],
+    '|': ['RawRightAssociation', 'Or', 'Alternatives'],
     '{': ['RawLeftBrace'],
     '}': ['RawRightBrace'],
     '~': ['StringExpression', 'Infix']

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -752,6 +752,9 @@ class Pattern_(PatternObject):
         if self.varname is None:
             self.error('patvar', expr)
         self.pattern = Pattern.create(expr.leaves[1])
+
+    def __repr__(self):
+        return '<Pattern: %s>' % repr(self.pattern)
 
     def get_match_count(self, vars={}):
         return self.pattern.get_match_count(vars)
